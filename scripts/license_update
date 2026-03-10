@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+#
+# Updates the THIRD-PARTY LICENSES section in the LICENSE file with current vendor licenses.
+set -eu -o pipefail
+
+repo_root="$(cd "$(dirname "$0")/.." && pwd)"
+cd "${repo_root}"
+
+LICENSE_FILE="LICENSE"
+MARKER="================================================================================
+
+                          THIRD-PARTY LICENSES"
+
+# Get the current list of vendor licenses
+vendor_licenses=$(find vendor -name "LICENSE*" -type f | sort)
+
+# Generate the new third-party section
+third_party_section="${MARKER}
+
+This project includes third-party dependencies, each governed by their own
+license terms. When dependencies change (go.mod updates), regenerate this
+section by running:
+
+    make license-update
+
+The following third-party licenses are included in the vendor directory:
+
+$(echo "$vendor_licenses" | sed 's/^/    /')"
+
+# Find where the third-party section starts (or end of file if not present)
+# Match separator line (80+ '=' chars) that precedes THIRD-PARTY LICENSES section
+if grep -qE '^={40,}$' "$LICENSE_FILE" 2>/dev/null; then
+    # Remove existing third-party section (from separator line to EOF) and append new one
+    head_content=$(sed -E '/^={40,}$/,$d' "$LICENSE_FILE")
+    echo "$head_content" > "$LICENSE_FILE"
+    echo "" >> "$LICENSE_FILE"
+    echo "$third_party_section" >> "$LICENSE_FILE"
+else
+    # Append third-party section to end of file
+    echo "" >> "$LICENSE_FILE"
+    echo "$third_party_section" >> "$LICENSE_FILE"
+fi
+
+# Count licenses safely (empty string would incorrectly return 1 with wc -l)
+if [[ -z "$vendor_licenses" ]]; then
+    count=0
+else
+    count=$(echo "$vendor_licenses" | wc -l)
+fi
+
+echo "LICENSE file updated with $count third-party license references."
