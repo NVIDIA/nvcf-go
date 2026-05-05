@@ -1,2 +1,0 @@
-OAUTH_CLIENT_ID="randomID"
-OAUTH_CLIENT_SECRET_KEY="randomKey"
